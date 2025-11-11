@@ -1,9 +1,16 @@
 package token
 
 import (
+	"errors"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+)
+
+var (
+	ErrExpiredToken = errors.New("token has expired")
+	ErrInvalidToken = errors.New("invalid token")
 )
 
 // Payload struct contains a payload data of a token
@@ -12,6 +19,7 @@ type Payload struct {
 	Username  string    `json:"username"`
 	IssuedAt  time.Time `json:"issued_at"`
 	ExpiredAt time.Time `json:"expired_at"`
+	jwt.RegisteredClaims
 }
 
 // NewPayload creates new token payload with a specific username and duration
@@ -26,4 +34,11 @@ func NewPayload(username string, duration time.Duration) (*Payload, error) {
 		IssuedAt:  time.Now(),
 		ExpiredAt: time.Now().Add(duration),
 	}, nil
+}
+
+func (payload *Payload) Valid() error {
+	if time.Now().After(payload.ExpiredAt) {
+		return ErrExpiredToken
+	}
+	return nil
 }
