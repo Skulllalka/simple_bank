@@ -13,32 +13,77 @@ var (
 	ErrInvalidToken = errors.New("invalid token")
 )
 
+type TokenType byte
+
+var (
+	TokenTypeAccessToken  = 1
+	TokenTypeRefreshToken = 2
+)
+
 // Payload struct contains a payload data of a token
 type Payload struct {
 	ID        uuid.UUID `json:"id"`
+	Type      TokenType `json:"token_type"`
 	Username  string    `json:"username"`
+	Role      string    `json:"role"`
 	IssuedAt  time.Time `json:"issued_at"`
 	ExpiredAt time.Time `json:"expired_at"`
 	jwt.RegisteredClaims
 }
 
 // NewPayload creates new token payload with a specific username and duration
-func NewPayload(username string, duration time.Duration) (*Payload, error) {
+func NewPayload(username string, role string, duration time.Duration, tokenType TokenType) (*Payload, error) {
 	tokenID, err := uuid.NewRandom()
 	if err != nil {
 		return nil, err
 	}
 	return &Payload{
 		ID:        tokenID,
+		Type:      tokenType,
 		Username:  username,
+		Role:      role,
 		IssuedAt:  time.Now(),
 		ExpiredAt: time.Now().Add(duration),
 	}, nil
 }
 
-func (payload *Payload) Valid() error {
+func (payload *Payload) Valid(tokenType TokenType) error {
+	if payload.Type != tokenType {
+		return ErrInvalidToken
+	}
+
 	if time.Now().After(payload.ExpiredAt) {
 		return ErrExpiredToken
 	}
 	return nil
+}
+
+func (payload *Payload) GetExpirationTime() (*jwt.NumericDate, error) {
+	return &jwt.NumericDate{
+		Time: payload.ExpiredAt,
+	}, nil
+}
+
+func (payload *Payload) GetIssuedAt() (*jwt.NumericDate, error) {
+	return &jwt.NumericDate{
+		Time: payload.IssuedAt,
+	}, nil
+}
+
+func (payload *Payload) GetNotBefore() (*jwt.NumericDate, error) {
+	return &jwt.NumericDate{
+		Time: payload.IssuedAt,
+	}, nil
+}
+
+func (payload *Payload) GetIssuer() (string, error) {
+	return "", nil
+}
+
+func (payload *Payload) GetSubject() (string, error) {
+	return "", nil
+}
+
+func (payload *Payload) GetAudience() (jwt.ClaimStrings, error) {
+	return jwt.ClaimStrings{}, nil
 }
