@@ -15,7 +15,7 @@ var (
 
 type TokenType byte
 
-var (
+const (
 	TokenTypeAccessToken  = 1
 	TokenTypeRefreshToken = 2
 )
